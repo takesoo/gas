@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "clasp": "clasp",
-    "tsc": "tsc"
+    "tsc": "tsc",
+    "build": "esbuild src/index.ts --bundle --outdir=dist --format=iife --global-name=_entry"
   },
   "keywords": [],
   "author": "",
@@ -14,5 +15,9 @@
   "dependencies": {
     "@google/clasp": "^2.5.0",
     "typescript": "^5.7.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2",
+    "ts-node": "^10.9.2"
   }
 }
