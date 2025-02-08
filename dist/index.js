@@ -27,16 +27,36 @@ var _entry = (() => {
     main: () => main
   });
   var BEARER_TOKEN = PropertiesService.getScriptProperties().getProperty("BEARER_TOKEN");
+  var SHEET_URL = "https://docs.google.com/spreadsheets/d/1_EJKBpSCL0Tt6VY9-k4QUu2b9anaQesohfKSoF4VzI4/edit";
+  var FILE_ID_INDEX_IN_URL = 5;
+  function getContentsFromSheet() {
+    const sheet = SpreadsheetApp.openByUrl(SHEET_URL).getSheets()[0];
+    const data = sheet.getDataRange().getValues();
+    return data.map((row) => ({
+      text: row[0],
+      imageUrl: row[1]
+    }));
+  }
   function main() {
     if (!BEARER_TOKEN) {
       throw new Error("BEARER_TOKEN is not set.");
     }
-    const response2 = UrlFetchApp.fetch("https://api.twitter.com/2/tweets/20", {
+    const contents = getContentsFromSheet();
+    const content = contents[Math.floor(Math.random() * contents.length)];
+    const fileId = content.imageUrl.split("/")[FILE_ID_INDEX_IN_URL];
+    const imageBlob = DriveApp.getFileById(fileId).getBlob();
+    console.log(imageBlob);
+    const formData = { image: imageBlob };
+    console.log(formData);
+    const uploadResponse = UrlFetchApp.fetch("https://api.x.com/2/media/upload", {
+      method: "post",
       headers: {
-        Authorization: `Bearer ${BEARER_TOKEN}`
-      }
+        Authorization: `Bearer ${BEARER_TOKEN}`,
+        "Content-Type": "multipart/form-data"
+      },
+      payload: formData
     });
-    Logger.log(response2.getContentText());
+    console.log(uploadResponse);
   }
   return __toCommonJS(index_exports);
 })();

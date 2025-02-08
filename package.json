@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "clasp": "clasp",
     "tsc": "tsc",
-    "build": "esbuild src/index.ts --bundle --outdir=dist --format=iife --global-name=_entry"
+    "build": "esbuild src/index.ts --bundle --outdir=dist --format=iife --global-name=_entry && ./node_modules/.bin/ts-node -T build.ts"
   },
   "keywords": [],
   "author": "",
