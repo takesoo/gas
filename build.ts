@@ -1,7 +1,7 @@
 import { build } from 'esbuild'
 import ts from 'typescript'
 
-const ENTRY_POINT = 'src/index.ts'
+const ENTRY_POINT = 'src/Code.ts'
 
 const program = ts.createProgram([ENTRY_POINT], {})
 const sourceFile = program.getSourceFile(ENTRY_POINT)
