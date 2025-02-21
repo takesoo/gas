@@ -1,4 +1,4 @@
-const SHEET_URL = `https://docs.google.com/spreadsheets/d/1_EJKBpSCL0Tt6VY9-k4QUu2b9anaQesohfKSoF4VzI4/edit`
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/145Kcng-af2dq3LKuAk9QBY5rLLXK7MM8SbU5rLi5z3s/edit?gid=0#gid=0`
 const FILE_ID_INDEX_IN_URL = 5
 const X_API_BASE_URL = 'https://api.x.com/2'
 const CLIENT_ID = PropertiesService.getScriptProperties().getProperty('CLIENT_ID')
@@ -18,7 +18,7 @@ function getContentsFromSheet(): { text: string, imageUrl: string }[] {
  * OAuth 2.0 Making requests on behalf of users
  * https://developer.twitter.com/en/docs/authentication/oauth-2-0/user-access-token
  */
-function postTweet() {
+function postTweet(text: string, mediaId: string) {
   const service = getService_()
   if (!service.hasAccess()) {
     throw new Error('Access token is not set.')
@@ -31,7 +31,10 @@ function postTweet() {
     },
     contentType: 'application/json',
     payload: JSON.stringify({
-      text: 'Post from Google Apps Script'
+      text,
+      media: {
+        media_ids: [mediaId]
+      }
     })
   }
   const response = UrlFetchApp.fetch(url, options)
@@ -53,7 +56,7 @@ function getService_() {
     .setCallbackFunction('authCallback')
     // アクセストークンを保持するプロパティストアを設定
     .setPropertyStore(PropertiesService.getUserProperties())
-    .setScope('tweet.write tweet.read media.write users.read')
+    .setScope('tweet.write tweet.read media.write users.read offline.access')
     .generateCodeVerifier()
     .setTokenHeaders({
       'Authorization': 'Basic ' + Utilities.base64Encode(`${CLIENT_ID}:${CLIENT_SECRET}`),
@@ -72,6 +75,14 @@ export function authCallback(request: Parameters<OAuth2.Service['handleCallback'
   } else {
     return HtmlService.createHtmlOutput('認証に失敗しました。')
   }
+}
+
+/**
+ * Reset the authorization state, so that it can be re-tested.
+ */
+export function logout() {
+  var service = getService_()
+  service.reset();
 }
 
 /**
@@ -104,23 +115,50 @@ export function onOpen() {
     .addToUi();
 }
 
+function convertToJsBlob(imageBlob: GoogleAppsScript.Base.Blob) {
+  return Utilities.newBlob(imageBlob.getBytes(), imageBlob.getContentType() ?? '', imageBlob.getName() ?? '');
+}
+
+/**
+ * upload image to Twitter
+ */
+export function uploadImage(imageBlob: GoogleAppsScript.Base.Blob) {
+  const service = getService_()
+  if (!service.hasAccess()) {
+    throw new Error('Access token is not set.')
+  }
+  const url = `${X_API_BASE_URL}/media/upload`
+  const jsBlob = convertToJsBlob(imageBlob)
+  const form = FetchApp.createFormData()
+  form.append('media', jsBlob as unknown as Blob)
+  const options: FetchApp.FetchParams = {
+    method: 'post',
+    headers: {
+      Authorization: `Bearer ${service.getAccessToken()}`,
+      'Content-Type': 'multipart/form-data'
+    },
+    body: form
+  }
+  const response = FetchApp.fetch(url, options)
+  const data = JSON.parse(response.getContentText())
+  return data.id
+}
+
 export function main() {
   // get tweet text and imageUrl from Google Sheets
-  // const contents = getContentsFromSheet()
+  const contents = getContentsFromSheet()
 
-  // // choose content randomly
-  // const content = contents[Math.floor(Math.random() * contents.length)]
+  // choose content randomly
+  const content = contents[Math.floor(Math.random() * contents.length)]
 
   // // fetch image
-  // const fileId = content.imageUrl.split('/')[FILE_ID_INDEX_IN_URL]
-  // const imageBlob = DriveApp.getFileById(fileId).getBlob()
-  // console.log(imageBlob)
-
-  // authorize
-
+  const fileId = content.imageUrl.split('/')[FILE_ID_INDEX_IN_URL]
+  const file = DriveApp.getFileById(fileId)
+  const imageBlob = DriveApp.getFileById(fileId).getBlob()
   // upload image
+  const mediaId = uploadImage(imageBlob)
 
   // postTweet
-  postTweet()
+  postTweet(content.text, mediaId)
 }
 

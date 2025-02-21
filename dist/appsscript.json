@@ -6,9 +6,20 @@
         "userSymbol": "OAuth2",
         "version": "43",
         "libraryId": "1B7FSrk5Zi6L1rSxxTDgDEUsPzlukDsi4KGuTMorsTQHhGBzBkMun4iDF"
+      },
+      {
+        "userSymbol": "FetchApp",
+        "version": "3",
+        "libraryId": "1sm9V-w8-0i3U4-10N6XyaRjHk5voiuJ1ArKSLo3htOUasB6GcPcIq8Kb"
       }
     ]
   },
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive.readonly",
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/script.container.ui"
+  ],
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8"
 }

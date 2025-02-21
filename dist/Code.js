@@ -1,11 +1,17 @@
 function authCallback () {
   return _entry.authCallback(...arguments);
 };
+function logout () {
+  return _entry.logout(...arguments);
+};
 function showSidebar () {
   return _entry.showSidebar(...arguments);
 };
 function onOpen () {
   return _entry.onOpen(...arguments);
+};
+function uploadImage () {
+  return _entry.uploadImage(...arguments);
 };
 function main () {
   return _entry.main(...arguments);
@@ -34,14 +40,26 @@ var _entry = (() => {
   var Code_exports = {};
   __export(Code_exports, {
     authCallback: () => authCallback,
+    logout: () => logout,
     main: () => main,
     onOpen: () => onOpen,
-    showSidebar: () => showSidebar
+    showSidebar: () => showSidebar,
+    uploadImage: () => uploadImage
   });
+  var SHEET_URL = `https://docs.google.com/spreadsheets/d/145Kcng-af2dq3LKuAk9QBY5rLLXK7MM8SbU5rLi5z3s/edit?gid=0#gid=0`;
+  var FILE_ID_INDEX_IN_URL = 5;
   var X_API_BASE_URL = "https://api.x.com/2";
   var CLIENT_ID = PropertiesService.getScriptProperties().getProperty("CLIENT_ID");
   var CLIENT_SECRET = PropertiesService.getScriptProperties().getProperty("CLIENT_SECRET");
-  function postTweet() {
+  function getContentsFromSheet() {
+    const sheet = SpreadsheetApp.openByUrl(SHEET_URL).getSheets()[0];
+    const data = sheet.getDataRange().getValues();
+    return data.map((row) => ({
+      text: row[0],
+      imageUrl: row[1]
+    }));
+  }
+  function postTweet(text, mediaId) {
     const service = getService_();
     if (!service.hasAccess()) {
       throw new Error("Access token is not set.");
@@ -54,7 +72,10 @@ var _entry = (() => {
       },
       contentType: "application/json",
       payload: JSON.stringify({
-        text: "Post from Google Apps Script"
+        text,
+        media: {
+          media_ids: [mediaId]
+        }
       })
     };
     const response = UrlFetchApp.fetch(url, options);
@@ -63,7 +84,7 @@ var _entry = (() => {
     if (!CLIENT_ID || !CLIENT_SECRET) {
       throw new Error("CLIENT_ID or CLIENT_SECRET is not set.");
     }
-    return OAuth2.createService("X").setAuthorizationBaseUrl("https://x.com/i/oauth2/authorize").setTokenUrl("https://api.x.com/2/oauth2/token").setClientId(CLIENT_ID).setClientSecret(CLIENT_SECRET).setCallbackFunction("authCallback").setPropertyStore(PropertiesService.getUserProperties()).setScope("tweet.write tweet.read media.write users.read").generateCodeVerifier().setTokenHeaders({
+    return OAuth2.createService("X").setAuthorizationBaseUrl("https://x.com/i/oauth2/authorize").setTokenUrl("https://api.x.com/2/oauth2/token").setClientId(CLIENT_ID).setClientSecret(CLIENT_SECRET).setCallbackFunction("authCallback").setPropertyStore(PropertiesService.getUserProperties()).setScope("tweet.write tweet.read media.write users.read offline.access").generateCodeVerifier().setTokenHeaders({
       "Authorization": "Basic " + Utilities.base64Encode(`${CLIENT_ID}:${CLIENT_SECRET}`),
       "Content-Type": "application/x-www-form-urlencoded"
     });
@@ -76,6 +97,10 @@ var _entry = (() => {
     } else {
       return HtmlService.createHtmlOutput("\u8A8D\u8A3C\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002");
     }
+  }
+  function logout() {
+    var service = getService_();
+    service.reset();
   }
   function showSidebar() {
     var service = getService_();
@@ -94,8 +119,39 @@ var _entry = (() => {
     const ui = SpreadsheetApp.getUi();
     ui.createMenu("\u30AB\u30B9\u30BF\u30E0\u30E1\u30CB\u30E5\u30FC").addItem("\u30B5\u30A4\u30C9\u30D0\u30FC\u3092\u8868\u793A", "showSidebar").addToUi();
   }
+  function convertToJsBlob(imageBlob) {
+    var _a, _b;
+    return Utilities.newBlob(imageBlob.getBytes(), (_a = imageBlob.getContentType()) != null ? _a : "", (_b = imageBlob.getName()) != null ? _b : "");
+  }
+  function uploadImage(imageBlob) {
+    const service = getService_();
+    if (!service.hasAccess()) {
+      throw new Error("Access token is not set.");
+    }
+    const url = `${X_API_BASE_URL}/media/upload`;
+    const jsBlob = convertToJsBlob(imageBlob);
+    const form = FetchApp.createFormData();
+    form.append("media", jsBlob);
+    const options = {
+      method: "post",
+      headers: {
+        Authorization: `Bearer ${service.getAccessToken()}`,
+        "Content-Type": "multipart/form-data"
+      },
+      body: form
+    };
+    const response = FetchApp.fetch(url, options);
+    const data = JSON.parse(response.getContentText());
+    return data.id;
+  }
   function main() {
-    postTweet();
+    const contents = getContentsFromSheet();
+    const content = contents[Math.floor(Math.random() * contents.length)];
+    const fileId = content.imageUrl.split("/")[FILE_ID_INDEX_IN_URL];
+    const file = DriveApp.getFileById(fileId);
+    const imageBlob = DriveApp.getFileById(fileId).getBlob();
+    const mediaId = uploadImage(imageBlob);
+    postTweet(content.text, mediaId);
   }
   return __toCommonJS(Code_exports);
 })();
