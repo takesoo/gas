@@ -7,7 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "clasp": "clasp",
     "tsc": "tsc",
-    "build": "esbuild src/Code.ts --bundle --outdir=dist --format=iife --global-name=_entry && ./node_modules/.bin/ts-node -T build.ts"
+    "build": "esbuild src/Code.ts --bundle --outdir=dist --format=iife --global-name=_entry && ./node_modules/.bin/ts-node -T build.ts",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
   "keywords": [],
   "author": "",
@@ -17,8 +19,13 @@
     "typescript": "^5.7.3"
   },
   "devDependencies": {
+    "@eslint/js": "^9.21.0",
     "@types/google-apps-script": "^1.0.92",
     "esbuild": "^0.24.2",
-    "ts-node": "^10.9.2"
+    "eslint": "^9.21.0",
+    "eslint-config-prettier": "^10.0.1",
+    "prettier": "^3.5.2",
+    "ts-node": "^10.9.2",
+    "typescript-eslint": "^8.24.1"
   }
 }
